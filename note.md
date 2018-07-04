@@ -18,6 +18,12 @@ Map Reduce
 
 Page Rank
 
+Spark
+
+Dryad
+
+DryadLINQ
+
 
 
 ## 大作业
@@ -145,3 +151,127 @@ open/read/write/create
 delete (dir, file)
 
 删除时候在master删除metadata, 之后等待garbage collection.
+
+
+
+## Map Reduce
+
+Map Reduce
+
+1. 好用
+2. Auto-scale
+3. Auto-FT
+
+### 函数
+
+```
+Map(Key, Value) {
+    Emit(Key, Value)    
+}
+
+Reduce(Key, Value_list) {
+    Output() -> HDFS    
+}
+```
+
+### Word count
+
+```
+T1: today is good
+T2: the weather is good
+T3: good good study
+```
+
+```
+<good, 4> <is, 2> <today, 1> <the, 1> <weather, 1> <study, 1>
+```
+
+简单做法,hashmap
+
+Map Reduce
+
+```
+Map(Key, Value) {
+	for each w in Value
+	Emit(w, 1)
+}
+
+Reduce(Key, Value_list) {
+	c := sum(Value_list)
+	Output(Key, c)
+}
+```
+
+Map -> Shuffle(排序) -> Reduce
+
+### Hadoop编程
+
+#### main
+
+设置输入输出的目录格式, 运行
+
+#### map
+
+执行chunk次map
+
+#### reduce
+
+按key执行
+
+实际执行过程中, 在同一点map的数据先合并.
+
+### 实验1 Inverted Index
+
+莎士比亚全集
+
+输出,Inverted index
+
+```
+Map(docID, text) {
+	for each w in text
+	Emit(w, docID)
+}
+
+Reduce(w, docID_list) {
+	merge()
+	Output(w, docID_list)
+}
+```
+
+### 实验2 Page Rank
+
+Reverse Link
+
+```
+Map(URL, Page) {
+	out_link_list = parse(Page)
+	Emit(out_link_list[i], URL)
+}
+
+Reduce(Key, Value_list) {
+	Output(Key, Value_list)
+}
+```
+
+Page Rank
+
+$PR_i = \Sigma\frac{PR_j}{C_j}\times(1-d)+d$
+
+```
+Map(URL, Page) {
+	for each outURL
+		Emit(outURL, PR/C(URL))
+}
+
+Reduce(outURL, PRs) {
+	PR = sum(PRs) * (1 - d) + d
+	Output(outURL, PR)
+}
+```
+
+40GB wikipedia Page Rank
+
+
+
+
+

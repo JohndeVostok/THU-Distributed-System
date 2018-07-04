@@ -53,6 +53,10 @@ void Reduce(String key, Iterator<HashMap> maps) {
 
 在论文中提到了，为了能够提高系统执行的速度，会采用投机执行的办法（speculative）。投机执行为何能够提高系统执行的速度？投机执行是否总是有效的，如果是否的话举出投机执行失效的场景？
 
+我做这个题的时候都怀疑人生了, 我他妈根本不知道还有这个机制, 看了几遍之后我明白了, 这个根本就不是map reduce提供的机制, 而是hadoop实现的时候实现的机制. 他的原理是这样, 在输入规模足够大的时候, 他会假设资源分配不均匀, 于是他会在资源比较富裕的节点上重复提交其他节点上的map task或reduce task. 这时候先完成的把后完成的kill掉. 从而使负载均衡, 提高整体效率. 假设每个map task和reduce task是完全一样的. 比如说word count中每个文档词数一样, 每个词长度都一样. 所有机器性能都一致, 这样speculative机制只会降低整体运行效率.
+
 #### 题目3
 
 一个MapReduce程序运行在100个节点上。每个节点可以同时运行4个任务，或者是4个Map任务，或者是4个Reduce任务。假设程序中需要运行的工作是40,000个map任务以及5,000个reduce任务。假设有一个节点坏掉了，那么最多需要重启多少个map任务？最多需要重启多少个reduce任务？为什么。
+
+如果master节点挂了, 那么重启多少个map或reduce任务取决于上一个checkpoint的位置, 即上一个checkpoint后执行的map task数和reduce task数. 如果挂掉的是worker节点, 那么只需要在其他节点上重新执行当前节点正在运行的task即可. 即最多4个map task或reduce task.
