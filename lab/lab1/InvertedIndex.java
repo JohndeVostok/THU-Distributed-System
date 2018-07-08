@@ -4,11 +4,18 @@ import java.util.regex.Matcher;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -22,14 +29,12 @@ public class InvertedIndex {
 		@Override
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 			split = (FileSplit) context.getInputSplit();
-			String pathname = split.getPath().toString();
-			int idx = pathname.lastIndexOf("/");
-			String filename = pathname.substring(idx + 1);
-			int base = (int) split.getStart();
-
+			String filename = split.getPath().getName();
 			String str = value.toString();
-			Pattern pattern = Pattern.compile("[^a-z|A-Z]");
+			Pattern pattern = Pattern.compile("[^a-zA-Z]");
 			Matcher matcher = pattern.matcher(str + ".");
+			LongWritable tmp = (LongWritable) key;
+			int base = (int) tmp.get();
 			int lastOff = 0, curOff = 0;
 			while (matcher.find()) {
 				curOff = matcher.start();
@@ -37,7 +42,7 @@ public class InvertedIndex {
 					String word = str.substring(lastOff, curOff).toLowerCase();
 					int add = base + lastOff;
 					keyInfo.set(word + ":" + filename);
-					valueInfo.set(String.valueOf(base));
+					valueInfo.set(String.valueOf(add));
 					context.write(keyInfo, valueInfo);
 				}
 				lastOff = curOff + 1;
