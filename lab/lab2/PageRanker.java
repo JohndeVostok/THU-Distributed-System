@@ -27,10 +27,13 @@ public class PageRanker {
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 			String str = value.toString();
 			int idx = str.indexOf("\t");
-			int idy = str.indexOf(";");
+			int idy = str.indexOf(";", idx);
+			if (idx == -1 || idy == -1 || idx >= str.length() || idy >= str.length()) {
+				return;
+			}
 			String page = str.substring(0, idx);
-			string rank = str.substring(idx + 1, idy);
-			string linkstr = str.substring(idy + 1);
+			String rank = str.substring(idx + 1, idy);
+			String linkstr = str.substring(idy + 1);
 
 			keyInfo.set(page);
 			valueInfo.set("!");
@@ -58,11 +61,11 @@ public class PageRanker {
 		@Override
 		public void reduce(Text key, Iterable <Text> values, Context context) throws IOException, InterruptedException {
 			boolean flag = false;
-			String str;
-			String linkstr;
+			String str = "";
+			String linkstr = "";
 			float tmp = 0;
 
-			for (Text value : Values) {
+			for (Text value : values) {
 				str = value.toString();
 				if (str.equals("!")) {
 					flag = true;
@@ -73,7 +76,7 @@ public class PageRanker {
 					continue;
 				}
 				int idx = str.indexOf(":");
-				int idy = str.indexOf(",");
+				int idy = str.indexOf(",", idx);
 				float rank = Float.valueOf(str.substring(idx + 1, idy));
 				int cnt = Integer.valueOf(str.substring(idy + 1));
 				tmp += rank / cnt;
@@ -85,14 +88,14 @@ public class PageRanker {
 
 			float rank = damping * tmp + (1 - damping);
 			res.set(String.valueOf(rank) + ";" + linkstr);
-			context.write(key, res)
+			context.write(key, res);
 		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		Job job = Job.getInstance(conf, "page rank");
-		job.setJarByClass(PageRank.class);
+		job.setJarByClass(PageRanker.class);
 		
 		job.setMapperClass(PageMapper.class);
 
@@ -104,10 +107,8 @@ public class PageRanker {
 		job.setOutputKeyClass(Text.class);
 		job.setOutputValueClass(Text.class);
 		
-		FileInputFormat.addInputPath(job, new Path("wiki-tmp/iter0"));
-		FileOutputFormat.setOutputPath(job, new Path("wiki-tmp/iter1"));
-		job.waitForCompletion(true);
-
-		System.exit(true);
+		FileInputFormat.addInputPath(job, new Path("wiki-tmp/iter" + args[0]));
+		FileOutputFormat.setOutputPath(job, new Path("wiki-tmp/iter" + args[1]));
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}
 }

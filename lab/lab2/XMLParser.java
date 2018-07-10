@@ -7,8 +7,13 @@ import java.io.IOException;
 import java.nio.charset.CharacterCodingException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.Map;
+import java.util.HashMap;
 
 public class XMLParser {
+
+	private static Map map = new HashMap();
+
 	public static String parse(String value) throws Exception {
 		String keyInfo, valueInfo;
 		Pattern linkPattern = Pattern.compile("\\[\\[.+?\\]\\]");
@@ -18,7 +23,12 @@ public class XMLParser {
 			return "";
 		}
 		keyInfo = strs[0].replace(" ", "_");
-		buf += keyInfo + "\t1.0;";
+		
+		if (!map.containsKey(keyInfo)) {
+			return "";
+		}
+
+		buf += String.valueOf(map.get(keyInfo)) + "\t1.0;";
 		Matcher matcher = linkPattern.matcher(strs[1]);
 		while (matcher.find()) {
 			String page = matcher.group();
@@ -27,7 +37,10 @@ public class XMLParser {
 				continue;
 			}
 			valueInfo = page;
-			buf += valueInfo + ",";
+			if (!map.containsKey(valueInfo)) {
+				continue;
+			}
+			buf += String.valueOf(map.get(valueInfo)) + ",";
 		}
 		buf = buf.substring(0, buf.length() - 1) + "\n";
 		return buf;
@@ -91,13 +104,25 @@ public class XMLParser {
 	}
 
 	public static void main(String[] args) throws Exception {
+		File filepage = new File("wiki-num/pagelist");
+		BufferedReader rd = new BufferedReader(new FileReader(filepage));
+		String st = null;
+		int cc = 0;
+		while ((st = rd.readLine()) != null) {
+			st.replace("\n", "");
+			map.put(st, cc);
+			cc++;
+		}
+		rd.close();
+		System.out.println("init hashmap");
+		
 		String path = "wiki";
 		File file = new File(path);
 		File[] files = file.listFiles();
 		int cnt = 0;
 		for (File filein : files) {
 			String name = filein.getName().substring(0, filein.getName().indexOf("."));
-			File fileout = new File("wiki-tmp/iter0/" + name);
+			File fileout = new File("wiki-num/iter0/" + name);
 			BufferedReader reader = new BufferedReader(new FileReader(filein));
 			BufferedWriter writer = new BufferedWriter(new FileWriter(fileout));
 			String tmp = null;
