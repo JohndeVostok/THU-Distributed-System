@@ -18,7 +18,7 @@ public class XMLParser {
 			return "";
 		}
 		keyInfo = strs[0].replace(" ", "_");
-		buf += keyInfo + ":1.0;";
+		buf += keyInfo + "\t1.0;";
 		Matcher matcher = linkPattern.matcher(strs[1]);
 		while (matcher.find()) {
 			String page = matcher.group();
@@ -54,6 +54,9 @@ public class XMLParser {
 	}
 
 	public static boolean validPage(String str) {
+		if (str == null || str.isEmpty()) {
+			return false;
+		}
 		return !str.contains(":");
 	}
 	
