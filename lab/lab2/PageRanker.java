@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.nio.charset.CharacterCodingException;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -46,7 +47,7 @@ public class PageRanker {
 			}
 		}
 		
-		private String[] parseText(Text value) {
+		private String[] parseText(Text value) throws CharacterCodingException {
 			String[] strs = new String[2];
 			int l = value.find("<title>");
 			int r = value.find("</title>", l);
@@ -57,14 +58,14 @@ public class PageRanker {
 			strs[0] = Text.decode(value.getBytes(), l, r - l);
 			l = value.find("<text");
 			l = value.find(">", l) + 1;
-			d = value.find("</text>", l) - l;
+			r = value.find("</text>", l) - l;
 			if (l == -1 || r == -1) {
 				return new String[] {"", ""};
 			}
 			l += 1;
 			strs[1] = Text.decode(value.getBytes(), l, r - l);
+			return strs;
 		}
-		return strs;
 
 		public boolean validPage(String str) {
 			return !str.contains(":");
@@ -97,52 +98,34 @@ public class PageRanker {
 			if (t > 0) {
 				r = t;
 			}
-			str = str.subString(l, r);
+			str = str.substring(l, r);
 			str = str.replace(" ", "_");
 			return str;
 		}
 
 	}
 
-	public static class InvCombiner extends Reducer <Text, Text, Text, Text> {
-		private Text info = new Text();
-
-		@Override
-		public void reduce(Text key, Iterable <Text> values, Context context) throws IOException, InterruptedException {
-			StringBuffer buf = new StringBuffer();
-			for (Text value : values) {
-				buf.append(value.toString() + ",");
-			}
-			int idx = key.toString().indexOf(":");
-			String word = key.toString().substring(0, idx);
-			String filename = key.toString().substring(idx + 1);
-			info.set(filename + ":" + buf.substring(0, buf.length() - 1));
-			key.set(word);
-			context.write(key, info);
-		}
-	}
-
-	public static class InvReducer extends Reducer <Text, Text, Text, Text> {
+	public static class LinkReducer extends Reducer <Text, Text, Text, Text> {
 		private Text res = new Text();
 		
 		@Override
 		public void reduce(Text key, Iterable <Text> values, Context context) throws IOException, InterruptedException {
-			StringBuffer buf = new StringBuffer();
+			StringBuffer buf = new StringBuffer("1.0\t");
 			for (Text value : values) {
-				buf.append(value.toString() + ";");
+				buf.append(value.toString() + ",");
 			}
 			res.set(buf.substring(0, buf.length() - 1));
 			context.write(key, res);
 		}
 	}
 
-	public boolean parsePage() throws Exception {
+	public static boolean parsePage() throws Exception {
 		Configuration conf = new Configuration();
 	
 		Job parseJob = Job.getInstance(conf, "parse page");
 		parseJob.setJarByClass(PageRanker.class);
 		
-		parseJob.setMapperClass(PageLineMapper.class);
+		parseJob.setMapperClass(PageLinkMapper.class);
 		parseJob.setMapOutputKeyClass(Text.class);
 		parseJob.setMapOutputValueClass(Text.class);
 		parseJob.setReducerClass(LinkReducer.class);
@@ -150,13 +133,11 @@ public class PageRanker {
 		parseJob.setOutputValueClass(Text.class);
 
 		FileInputFormat.addInputPath(parseJob, new Path("/data/wiki-test"));
-		FileOutputFormat.addOutputPath(parseJob, new Path("/data/wiki-tmp/iter0"));
+		FileOutputFormat.setOutputPath(parseJob, new Path("/data/wiki-tmp/iter0"));
 		return parseJob.waitForCompletion(true);
 	}
-	
+
 	public static void main(String[] args) throws Exception {
-		boolean flag;
-		flag = parsePage();
-		return 0;
+		boolean flag = parsePage();
 	}
 }

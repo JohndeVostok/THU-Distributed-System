@@ -1,7 +1,7 @@
 #!/bin/bash
 
-rm -r output
+rm -r /data/wiki-tmp
 set -x
-hdfs dfs -rm -r -f output
-hadoop jar ii.jar InvertedIndex
-hdfs dfs -get output .
+hdfs dfs -rm -r -f /data/wiki-tmp
+hadoop jar ii.jar PageRanker
+hdfs dfs -get /data/wiki-tmp

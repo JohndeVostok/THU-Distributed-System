@@ -2,5 +2,5 @@
 
 set -x
 
-hadoop com.sun.tools.javac.Main InvertedIndex.java
-jar cf ii.jar InvertedIndex*.class
+hadoop com.sun.tools.javac.Main PageRanker.java
+jar cf ii.jar PageRanker*.class
