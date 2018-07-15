@@ -62,6 +62,7 @@ public class Canopy {
 
 			if (flag) {
 				CanopyCenter c = new CanopyCenter();
+				c.movieId = movieId;
 				c.userSet.addAll(userSet);
 				centerList.add(c);
 			}
@@ -127,6 +128,7 @@ public class Canopy {
 
 			if (flag) {
 				CanopyCenter c = new CanopyCenter();
+				c.movieId = movieId;
 				c.userSet.addAll(userSet);
 				centerList.add(c);
 			}
@@ -151,8 +153,8 @@ public class Canopy {
 				}
 				value.set(buf.toString());
 				context.write(key, value);
-				cleanup(context);
 			}
+			cleanup(context);
 		}
 	}
 

@@ -1,8 +1,9 @@
 #!/bin/bash
 
 set -x
-hdfs dfs -rm -r cluster
-hdfs dfs -mkdir cluster
-hdfs dfs -put cluster/data cluster
+
+rm -r canopy
+
+hdfs dfs -rm -r cluster/canopy
 hadoop jar canopy.jar Canopy
 hdfs dfs -get cluster/canopy .
