@@ -3,6 +3,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -27,6 +29,7 @@ public class Canopy {
 	public static class CanopyCenter {
 		public int movieId;
 		public Set userSet = new HashSet <Integer>();
+		public Map rankMap = new HashMap <Integer, Integer>();
 	}
 
 	public static class CanopyMapper extends Mapper <Object, Text, Text, Text> {
@@ -36,6 +39,7 @@ public class Canopy {
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 			String str = value.toString();
 			Set userSet = new HashSet <Integer>();
+			Map rankMap = new HashMap <Integer, Integer>();
 			int idx = str.indexOf(":");
 			int movieId = Integer.valueOf(str.substring(0, idx));
 			while (idx < str.length() - 1) {
@@ -44,6 +48,7 @@ public class Canopy {
 				int userId = Integer.valueOf(str.substring(idx + 1, idy));
 				int userRank = Integer.valueOf(str.substring(idy + 1, idz));
 				userSet.add(userId);
+				rankMap.put(userId, userRank);
 				idx = idz;
 			}
 
@@ -63,7 +68,12 @@ public class Canopy {
 			if (flag) {
 				CanopyCenter c = new CanopyCenter();
 				c.movieId = movieId;
-				c.userSet.addAll(userSet);
+				for (Object uo : userSet) {
+					int k = (Integer) uo;
+					int v = rankMap.get(k);
+					c.userSet.add(k);
+					c.rankMap.put(k, v);
+				}
 				centerList.add(c);
 			}
 		}
@@ -84,8 +94,11 @@ public class Canopy {
 					StringBuffer buf = new StringBuffer();
 					for (Object uo : c.userSet) {
 						int userId = (Integer) uo;
+						int userRank = c.rankMap.get(userId);
 						buf.append(String.valueOf(userId));
 						buf.append(",");
+						buf.append(String.valueOf(userRank));
+						buf.append(";");
 					}
 					value.set(buf.toString());
 					context.write(key, value);
@@ -101,15 +114,19 @@ public class Canopy {
 		@Override
 		public void reduce(Text key, Iterable <Text> values, Context context) throws IOException, InterruptedException {
 			Set userSet = new HashSet <Integer>();
+			Map rankMap = new HashMap <Integer>();
 			int movieId = Integer.valueOf(key.toString());
 			for (Text value : values) {
 				String str = value.toString();
-				int idx = -1;
+				int idx = -1, idy, idz;
 				while (idx < str.length() - 1) {
-					int idy = str.indexOf(",", idx + 1);
+					idy = str.indexOf(",", idx + 1);
+					idz = str.indexOf(";", idy + 1);
 					int userId = Integer.valueOf(str.substring(idx + 1, idy));
+					int userRank = Integer.valueOf(str.substring(idy + 1, idz));
 					userSet.add(userId);
-					idx = idy;
+					rankMap.put(userId, userRank);
+					idx = idz;
 				}
 				break;
 			}
@@ -129,7 +146,12 @@ public class Canopy {
 			if (flag) {
 				CanopyCenter c = new CanopyCenter();
 				c.movieId = movieId;
-				c.userSet.addAll(userSet);
+				for (Object uo : userSet) {
+					int k = (Integer) uo;
+					int v = rankMap.get(k);
+					c.userSet.add(k);
+					c.rankMap.put(k, v);
+				}
 				centerList.add(c);
 			}
 		}
@@ -148,8 +170,11 @@ public class Canopy {
 				StringBuffer buf = new StringBuffer();
 				for (Object uo : c.userSet) {
 					int userId = (Integer) uo;
+					int userRank = c.rankMap.get(userId);
 					buf.append(String.valueOf(userId));
 					buf.append(",");
+					buf.append(String.valueOf(userRank));
+					buf.append(";");
 				}
 				value.set(buf.toString());
 				context.write(key, value);
