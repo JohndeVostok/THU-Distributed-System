@@ -22,23 +22,23 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-public class Canopy {
+public class KMeans {
 	
 	public static class Center {
 		public int movieId;
-		public Map rankMap = new HashMap <Integer, Float>();
+		public Map rankMap <Integer, Integer> = new HashMap();
 	}
 
 	static {
-		Map centerMap = new HashMap <Center>();
+		Map centerMap <Center> = new HashMap();
 	}
 
 	public static class KMeansMapper extends Mapper <Object, Text, Text, Text> {
 		@Override
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 			String str = value.toString();
-			List centerList = new ArrayList <Integer>();
-			Map rankMap = new HashMap <Integer, Float>();
+			List <Center> centerList = new ArrayList();
+			Map rankMap <Integer, Integer> = new HashMap();
 			int idx = str.indexOf(":"), idy = str.indexOf("|"), idz;
 			int movieId = Integer.valueOf(str.substring(0, idx));
 			while (idx < idy - 1) {
@@ -51,13 +51,11 @@ public class Canopy {
 				idy = str.indexOf(",", idx);
 				idz = str.indexOf(";", idy);
 				int userId = Integer.valueOf(str.substring(idx + 1, idy));
-				int userRank = Float.valueOf(str.substring(idy + 1, idz));
+				int userRank = Integer.valueOf(str.substring(idy + 1, idz));
 				rankMap.put(userId, userRank);
 				idx = idz;
 			}
 
-			int cid = -1;
-			
 			for (int id : centerList) {
 				//TODO
 				//get cos dist

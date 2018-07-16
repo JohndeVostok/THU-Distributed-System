@@ -2,8 +2,8 @@
 
 set -x
 
-rm -r canopy
+rm -r assign
 
-hdfs dfs -rm -r cluster/canopy
-hadoop jar canopy.jar Canopy
-hdfs dfs -get cluster/canopy .
+hdfs dfs -rm -r cluster/assign
+hadoop jar assign.jar Assign
+hdfs dfs -get cluster/assign .

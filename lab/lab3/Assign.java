@@ -3,6 +3,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -26,19 +28,20 @@ public class Assign {
 	
 	public static class CanopyCenter {
 		public int movieId;
-		public Set userSet = new HashSet <Integer>();
+		public Set <Integer> userSet = new HashSet();
 	}
 
-	public static String centerPath = "cluster/canopy/part-r-00000";
-
-	public static class CanopyMapper extends Mapper <Object, Text, Text, Text> {
-		private List centerList = new ArrayList <CanopyCenter>();
+	public static class AssignMapper extends Mapper <Object, Text, Text, Text> {
+		private List <CanopyCenter> centerList = new ArrayList();
+		public static String centerPath = "cluster/canopy/part-r-00000";
 
 		@Override
 		public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
 			String str = value.toString();
 			Set userSet = new HashSet <Integer>();
+			StringBuffer buf = new StringBuffer();
 			int idx = str.indexOf(":");
+			String content = str.substring(idx + 1);
 			int movieId = Integer.valueOf(str.substring(0, idx));
 			while (idx < str.length() - 1) {
 				int idy = str.indexOf(",", idx);
@@ -49,53 +52,54 @@ public class Assign {
 				idx = idz;
 			}
 
-			boolean flag = true;
-
-			for (Object co : centerList) {
-				CanopyCenter c = (CanopyCenter) co;
+			for (CanopyCenter c : centerList) {
 				Set tmp = new HashSet();
 				tmp.addAll(c.userSet);
 				tmp.retainAll(userSet);
 				System.out.println(tmp.size());
-				if (tmp.size() >= 8) {
-					flag = false;
+				if (tmp.size() >= 2) {
+					buf.append(String.valueOf(c.movieId));
+					buf.append(",");
 				}
 			}
-
-			if (flag) {
-				CanopyCenter c = new CanopyCenter();
-				c.movieId = movieId;
-				c.userSet.addAll(userSet);
-				centerList.add(c);
-			}
+			
+			buf.append("|");
+			buf.append(content);
+			Text keyInfo = new Text(String.valueOf(movieId));
+			Text valueInfo = new Text(buf.toString());
+			context.write(keyInfo, valueInfo);
 		}
 
 		@Override
 		public void run(Context context) throws IOException, InterruptedException {
-			Text key = new Text();
-			Text value = new Text();
 			setup(context);
 			
 			Configuration conf = new Configuration();
 			FileSystem hdfs = FileSystem.get(conf);
-			
+			FSDataInputStream in = hdfs.open(new Path(centerPath));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+			String tmp = null;
+			while ((tmp = reader.readLine()) != null) {
+				CanopyCenter c = new CanopyCenter();
+				int idx = tmp.indexOf("\t");
+				int movieId = Integer.valueOf(tmp.substring(0, idx));
+				c.movieId = movieId;
+				while (idx < tmp.length() - 1) {
+					int idy = tmp.indexOf(",", idx + 1);
+					int idz = tmp.indexOf(";", idy + 1);
+					int userId = Integer.valueOf(tmp.substring(idx + 1, idy));
+					int userRank = Integer.valueOf(tmp.substring(idy + 1, idz));
+					c.userSet.add(userId);
+					idx = idz;
+				}
+				centerList.add(c);
+			}
+
 			try {
 				while (context.nextKeyValue()) {
 					map(context.getCurrentKey(), context.getCurrentValue(), context);
 				}
 			} finally {
-				for (Object co : centerList) {
-					CanopyCenter c = (CanopyCenter) co;
-					key.set(String.valueOf(c.movieId));
-					StringBuffer buf = new StringBuffer();
-					for (Object uo : c.userSet) {
-						int userId = (Integer) uo;
-						buf.append(String.valueOf(userId));
-						buf.append(",");
-					}
-					value.set(buf.toString());
-					context.write(key, value);
-				}
 				cleanup(context);
 			}
 		}
@@ -104,7 +108,7 @@ public class Assign {
 	public static void main(String[] args) throws Exception {
 		Configuration conf = new Configuration();
 		Job job = Job.getInstance(conf, "assign");
-		job.setJarByClass(Canopy.class);
+		job.setJarByClass(Assign.class);
 		
 		job.setMapperClass(AssignMapper.class);
 
