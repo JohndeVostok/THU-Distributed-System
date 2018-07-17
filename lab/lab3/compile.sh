@@ -2,5 +2,5 @@
 
 set -x
 
-hadoop com.sun.tools.javac.Main Assign.java
-jar cf assign.jar Assign*.class
+hadoop com.sun.tools.javac.Main KMeans.java
+jar cf kmeans.jar KMeans*.class
