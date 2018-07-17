@@ -34,7 +34,7 @@ public class GetRes {
 		public Map <Integer, Float> rankMap = new HashMap();
 	}
 
-	public static class GetRes extends Mapper <Object, Text, Text, Text> {
+	public static class GetResMapper extends Mapper <Object, Text, Text, Text> {
 		private Map <Integer, Center> centerMap = new HashMap();
 
 		@Override
@@ -148,7 +148,7 @@ public class GetRes {
 		job.setOutputValueClass(Text.class);
 
 		FileInputFormat.addInputPath(job, new Path("cluster/assign"));
-		FileOutputFormat.setOutputPath(job, new Path("cluster/iter4"));
+		FileOutputFormat.setOutputPath(job, new Path("cluster/res"));
 		
 		System.exit(job.waitForCompletion(true) ? 0 : 1);
 	}

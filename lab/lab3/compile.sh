@@ -2,5 +2,5 @@
 
 set -x
 
-hadoop com.sun.tools.javac.Main GetRes.java
-jar cf getres.jar GetRes*.class
+hadoop com.sun.tools.javac.Main KMeans.java
+jar cf kmeans.jar KMeans*.class
